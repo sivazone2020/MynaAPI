@@ -1,0 +1,183 @@
+# MynaAPI - Backend Service Design & Architecture
+
+## Project Overview
+MynaAPI is a backend service that assists school students in finding the best colleges based on their academic marks. The system uses Agentic AI with LangGraph to process user queries and provide intelligent responses.
+
+## Technology Stack
+- Python (Latest stable version)
+- Virtual Environment (venv)
+- LangGraph for Agentic AI implementation
+- OpenAI GPT-4.0 for natural language processing
+- Pinecone as Vector Database for RAG implementation
+- REST API for mobile app integration
+- FastAPI for web framework
+- Logging system for comprehensive monitoring
+
+## Architecture Components
+
+### 1. Authentication Layer
+- Username/Password based authentication for mobile app integration
+- JWT token generation and validation
+- Middleware for API endpoint protection
+
+### 2. Agentic AI Framework (LangGraph)
+The system implements a multi-node architecture:
+
+#### Router Node (Entry Point)
+- Receives user queries from mobile app
+- Connects to GPT-4.0 for intent understanding
+- Routes queries to appropriate specialized nodes
+- Maintains conversation context and metadata
+
+#### TNEA Node (Tamil Nadu Engineering Admissions)
+- Handles queries related to engineering college admissions in Tamil Nadu
+- Implements RAG (Retrieval Augmented Generation) using Pinecone
+- Provides cutoff mark-based college recommendations
+- Uses vector similarity search for relevant information retrieval
+
+#### Future Implementation Node
+- Placeholder for queries not handled by current nodes
+- Designed for extensibility to accommodate future specialized nodes
+- Returns appropriate "coming soon" responses
+
+### 3. Data Layer
+#### Pinecone Vector Database
+- Index: mynaservice
+- Stores vectorized college and admission data
+- Enables semantic search for RAG implementation
+- Host: https://mynaservice-uf7j9ag.svc.aped-4627-b74a.pinecone.io
+
+### 4. Context Management
+- User session management
+- Conversation history tracking
+- Metadata preservation across node transitions
+- Memory persistence for personalized responses
+
+### 5. Logging System
+- Comprehensive request/response logging
+- Node routing information
+- System integration tracking
+- Error monitoring and debugging capabilities
+- Log file rotation and management
+
+### 6. Configuration Management
+- Environment variables in .env file
+- API keys and database credentials
+- Configurable model parameters
+- Deployment-specific settings
+
+## API Endpoints
+
+### Authentication
+- POST /auth/login - User authentication
+- POST /auth/refresh - Token refresh
+
+### Query Processing
+- POST /api/query - Main query endpoint
+- GET /api/health - Health check
+- GET /api/logs - Log retrieval (admin)
+
+## Project Structure
+```
+MynaAPI/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI application entry point
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── settings.py         # Configuration management
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   ├── models.py           # User models
+│   │   ├── routes.py           # Authentication routes
+│   │   └── utils.py            # Auth utilities
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   ├── graph.py            # LangGraph implementation
+│   │   ├── nodes/
+│   │   │   ├── __init__.py
+│   │   │   ├── router_node.py  # Router node implementation
+│   │   │   ├── tnea_node.py    # TNEA node implementation
+│   │   │   └── future_node.py  # Future implementation node
+│   │   └── utils.py            # Agent utilities
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── openai_service.py   # OpenAI integration
+│   │   ├── pinecone_service.py # Pinecone integration
+│   │   └── logging_service.py  # Logging utilities
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── request_models.py   # Pydantic request models
+│   │   └── response_models.py  # Pydantic response models
+│   └── utils/
+│       ├── __init__.py
+│       └── helpers.py          # General utilities
+├── tests/
+│   ├── __init__.py
+│   ├── test_auth.py
+│   ├── test_agents.py
+│   └── test_services.py
+├── logs/                       # Log files directory
+├── requirements.txt
+├── .env                        # Environment variables
+├── .gitignore
+├── README.md
+└── run.py                      # Application runner
+```
+
+## Data Flow
+1. Mobile app sends authenticated request to /api/query
+2. Request reaches Router Node in LangGraph
+3. Router Node uses GPT-4.0 to analyze intent
+4. Based on intent, routes to appropriate node:
+   - TNEA-related queries → TNEA Node
+   - Other queries → Future Implementation Node
+5. TNEA Node performs RAG using Pinecone for relevant data
+6. Node generates response using GPT-4.0
+7. Response sent back through the graph maintaining context
+8. Final response returned to mobile app
+9. All interactions logged for monitoring
+
+## Security Considerations
+- API key management through environment variables
+- JWT-based authentication
+- Request rate limiting
+- Input validation and sanitization
+- Secure logging (no sensitive data in logs)
+
+## Deployment Considerations
+- Environment-specific configuration
+- Docker containerization support
+- Cloud deployment readiness
+- Scalability for multiple concurrent users
+- Health monitoring endpoints
+
+## Extension Points
+- New node types can be easily added to the LangGraph
+- Router logic can be extended for new intents
+- Additional vector databases can be integrated
+- Multiple authentication methods can be supported
+
+## Configuration Files
+
+### .env File Contents
+```
+OPENAI_API_KEY=your-openai-api-key-here
+PINECONE_API_KEY=your-pinecone-api-key-here
+PINECONE_HOST=your-pinecone-host-url-here
+PINECONE_INDEX=your-pinecone-index-name
+JWT_SECRET_KEY=your-secret-key-here
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_HOURS=24
+LOG_LEVEL=INFO
+```
+
+## Development Phases
+1. Phase 1: Basic project structure and authentication
+2. Phase 2: LangGraph implementation with Router and Future nodes
+3. Phase 3: TNEA Node with Pinecone RAG integration
+4. Phase 4: Comprehensive logging and monitoring
+5. Phase 5: Testing and optimization
+6. Phase 6: Documentation and deployment preparation
+
+This design ensures scalability, maintainability, and extensibility for future enhancements while providing a robust foundation for the mobile app backend service.

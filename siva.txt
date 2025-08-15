@@ -1,0 +1,45 @@
+You are python and Agentic AI Architect and aware of latest trends and best practices.
+
+You are going to build a Mobile App , that will assist school students to find best college based on their mark. When User enters a query in Mobile App, 
+that will connect to this service 'MynaAPI'. THis is the Backend part and this project will be for backend only. THis will have an ability to integrate with MObile App.
+Integration approach will be REST API . API integration will be based on User Name & PWD
+
+Use Python Latest & Stable version. Create Venv and activate as needed.
+Use Lang Graph for Agentic AI
+Use GPT 40
+
+Agentic AI can have several nodes in Lang Graph
+
+First Router Node [User Query from MObile App will reach this].
+    This node will connect to GPT 40 to understand Integration
+    If the query related to give an idea about what Engineering college student can get based on his TNEA cutoff mark in tamilnadu
+        Route it to TNEANode
+    IF the qiery is any other node, pass it to "Future IMplementation Node" . This will be implemented in future.
+
+In future, many nodes will be added based on User query and intent. This project should be extendtable to accomodate future nodes.
+
+System should maintain context, meta data about the user and memory while passing between nodes. Entire conversation summary must be maintained. It must answer based on it.  
+
+There should be a clear log file , maintains the user query, GPT response, to which node it is sent, which system it went and so on. IT must be possible to quickly view logs and troubleshoot and understand the integration
+
+
+If the intent reaches TNEANode, 
+    1. Answer based on RAG
+    2. PIneCone is the vector DB. The Key and other pinecone details are given below. 
+
+Maintain all keys and configs in .env file
+
+
+This solution will be deployed in cloud in future, but will run locally for now. Consider it while building. All answers should use GPT 40 only and RAG shall be used for TNEA Node intent
+No other mechanism should be used for answer. 
+
+PRepare a Design.txt file that should list your design and architecture of this program. In future, that will be used as a prompt to recreate the project again, so it must have all details and prompts
+
+
+
+
+OPENAI_API_KEY=your-openai-api-key-here
+PINECONE_API_KEY=your-pinecone-api-key-here
+PInecone Host: your-pinecone-host-url-here
+Pinecone Index: your-pinecone-index-name
+

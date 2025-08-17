@@ -132,6 +132,20 @@ jobs:
           --memory 2Gi \
           --min-replicas 1 \
           --max-replicas 3
+          
+    - name: Get Container App URL
+      id: deploy
+      run: |
+        # Get the Container App FQDN
+        app_url=$(az containerapp show \
+          --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app \
+          --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
+          --query "properties.configuration.ingress.fqdn" -o tsv)
+        
+        # Add https:// prefix
+        full_url="https://$app_url"
+        echo "Container App URL: $full_url"
+        echo "container-app-url=$full_url" >> $GITHUB_OUTPUT
 
   build-container:
     name: Build Container Image
@@ -280,20 +294,36 @@ jobs:
     - name: Health Check
       run: |
         app_url="${{ needs.deploy-infrastructure.outputs.container-app-url }}"
+        echo "Container App URL: $app_url"
         echo "Testing health endpoint: $app_url/health"
+        
+        # Validate URL is not empty
+        if [ -z "$app_url" ]; then
+          echo "Error: Container App URL is empty!"
+          exit 1
+        fi
         
         # Wait for app to be ready (max 5 minutes)
         for i in {1..30}; do
-          if curl -f "$app_url/health" > /dev/null 2>&1; then
+          echo "Attempt $i: Testing health endpoint..."
+          if curl -f -s -o /dev/null "$app_url/health"; then
             echo "Health check passed!"
             break
           fi
-          echo "Attempt $i: Health check failed, retrying in 10s..."
+          echo "Health check failed, retrying in 10s..."
           sleep 10
+          
+          # Show final attempt
+          if [ $i -eq 30 ]; then
+            echo "Final attempt failed. Showing detailed error:"
+            curl -v "$app_url/health" || true
+            exit 1
+          fi
         done
         
-        # Final health check
-        curl -f "$app_url/health" || exit 1
+        # Final health check with output
+        echo "Final health check with response:"
+        curl -f "$app_url/health"
         
     - name: API Endpoint Tests
       run: |

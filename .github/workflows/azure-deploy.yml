@@ -101,6 +101,13 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         
+    - name: Create Resource Group
+      run: |
+        az group create \
+          --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
+          --location ${{ env.AZURE_LOCATION }} \
+          --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
+        
     - name: Deploy ARM template
       id: deploy
       uses: azure/arm-deploy@v1

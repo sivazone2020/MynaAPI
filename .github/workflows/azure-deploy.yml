@@ -131,7 +131,8 @@ jobs:
           --cpu 1 \
           --memory 2Gi \
           --min-replicas 1 \
-          --max-replicas 3
+          --max-replicas 3 \
+          --env-vars OPENAI_API_KEY=placeholder PINECONE_API_KEY=placeholder PINECONE_HOST=placeholder PINECONE_INDEX=placeholder
 
     - name: Get Container App URL
       id: get-url

@@ -133,6 +133,12 @@ jobs:
           --min-replicas 1 \
           --max-replicas 3
 
+    - name: Get Container App URL
+      id: deploy
+      run: |
+        app_url=$(az containerapp show --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg --query "properties.configuration.ingress.fqdn" -o tsv)
+        echo "container-app-url=https://$app_url" >> $GITHUB_OUTPUT
+
   build-container:
     name: Build Container Image
     runs-on: ubuntu-latest

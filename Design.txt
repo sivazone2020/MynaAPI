@@ -179,5 +179,217 @@ LOG_LEVEL=INFO
 4. Phase 4: Comprehensive logging and monitoring
 5. Phase 5: Testing and optimization
 6. Phase 6: Documentation and deployment preparation
+7. Phase 7: Azure Container deployment and production setup
 
-This design ensures scalability, maintainability, and extensibility for future enhancements while providing a robust foundation for the mobile app backend service.
+## Azure Deployment Architecture
+
+### Overview
+The MynaAPI will be deployed on Azure using a containerized approach with Azure Container Instances (ACI) or Azure Container Apps for optimal scalability, cost-effectiveness, and ease of management.
+
+### Deployment Strategy Options
+
+#### Option 1: Azure Container Instances (ACI) - Recommended for Development/Testing
+- **Service**: Azure Container Instances
+- **Benefits**: Simple deployment, serverless containers, pay-per-second billing
+- **Best For**: Development, testing, low-traffic production environments
+- **Scaling**: Manual scaling with multiple container groups
+
+#### Option 2: Azure Container Apps - Recommended for Production
+- **Service**: Azure Container Apps
+- **Benefits**: Auto-scaling, managed Kubernetes, built-in monitoring
+- **Best For**: Production environments requiring high availability and auto-scaling
+- **Scaling**: Automatic horizontal scaling based on HTTP traffic or custom metrics
+
+#### Option 3: Azure Kubernetes Service (AKS) - Enterprise Scale
+- **Service**: Azure Kubernetes Service
+- **Benefits**: Full Kubernetes features, maximum control, enterprise-grade
+- **Best For**: Large-scale production with complex orchestration needs
+- **Scaling**: Advanced orchestration with Kubernetes features
+
+### Container Architecture
+
+#### Base Container Configuration
+- **Base Image**: python:3.13-slim
+- **Application Port**: 8000
+- **Health Check**: /health endpoint
+- **Resource Requirements**: 
+  - CPU: 0.5-2 cores
+  - Memory: 1-4 GB
+  - Storage: 10 GB temporary
+
+#### Environment Variables Management
+- **Azure Key Vault**: Store sensitive API keys securely
+- **Container Environment Variables**: Non-sensitive configuration
+- **Managed Identity**: Secure access to Azure services without credentials
+
+### Infrastructure Components
+
+#### 1. Container Registry
+- **Service**: Azure Container Registry (ACR)
+- **Purpose**: Store and manage Docker images
+- **Features**: Geo-replication, vulnerability scanning, automated builds
+
+#### 2. Application Gateway / Load Balancer
+- **Service**: Azure Application Gateway or Azure Load Balancer
+- **Purpose**: Traffic distribution, SSL termination, WAF protection
+- **Features**: Auto-scaling, health probes, custom domains
+
+#### 3. Monitoring and Logging
+- **Service**: Azure Monitor + Application Insights
+- **Purpose**: Performance monitoring, error tracking, distributed tracing
+- **Features**: Custom metrics, alerts, log analytics
+
+#### 4. Security
+- **Service**: Azure Key Vault + Managed Identity
+- **Purpose**: Secure secrets management and authentication
+- **Features**: Automatic key rotation, access policies, audit logs
+
+#### 5. Database and Storage
+- **External Services**: OpenAI API, Pinecone Vector DB
+- **Caching**: Azure Cache for Redis (optional for performance)
+- **File Storage**: Azure Blob Storage (for logs and static files)
+
+### Deployment Process
+
+#### 1. Containerization
+```dockerfile
+# Multi-stage build for optimization
+FROM python:3.13-slim as builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user -r requirements.txt
+
+FROM python:3.13-slim
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY . .
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+#### 2. CI/CD Pipeline (GitHub Actions)
+```yaml
+# Automated build and deployment
+- Build Docker image
+- Push to Azure Container Registry
+- Deploy to Azure Container Apps
+- Run health checks
+- Rollback on failure
+```
+
+#### 3. Infrastructure as Code (ARM Templates / Bicep)
+```bicep
+# Azure Resource Manager templates
+- Container Apps Environment
+- Application Gateway
+- Key Vault
+- Monitoring components
+- Networking (VNet, subnets)
+```
+
+### Scaling and Performance
+
+#### Auto-scaling Configuration
+- **Trigger**: HTTP request volume, CPU usage, memory usage
+- **Min Instances**: 1
+- **Max Instances**: 10
+- **Scale-out Threshold**: 70% CPU or 100 concurrent requests
+- **Scale-in Threshold**: 30% CPU or 20 concurrent requests
+
+#### Performance Optimization
+- **Connection Pooling**: Optimized HTTP client connections
+- **Caching**: Redis for frequently accessed data
+- **CDN**: Azure CDN for static content delivery
+- **Geographic Distribution**: Multi-region deployment for global users
+
+### Security Implementation
+
+#### Network Security
+- **Virtual Network**: Isolated network environment
+- **Network Security Groups**: Firewall rules
+- **Private Endpoints**: Secure connections to Azure services
+- **DDoS Protection**: Azure DDoS Protection Standard
+
+#### Application Security
+- **Managed Identity**: Azure AD authentication for services
+- **Key Vault Integration**: Secure API key management
+- **SSL/TLS**: End-to-end encryption
+- **Web Application Firewall**: Protection against common attacks
+
+#### Compliance and Auditing
+- **Azure Policy**: Governance and compliance enforcement
+- **Activity Logs**: Comprehensive audit trail
+- **Security Center**: Continuous security assessment
+- **Backup and Recovery**: Automated backup strategies
+
+### Cost Optimization
+
+#### Resource Management
+- **Right-sizing**: Optimize container resources based on usage
+- **Reserved Instances**: Commit to long-term usage for discounts
+- **Spot Instances**: Use for non-critical workloads
+- **Auto-shutdown**: Schedule for development environments
+
+#### Monitoring and Alerts
+- **Cost Alerts**: Budget thresholds and notifications
+- **Usage Analytics**: Track resource consumption patterns
+- **Optimization Recommendations**: Azure Advisor suggestions
+
+### Disaster Recovery and Business Continuity
+
+#### Backup Strategy
+- **Application Code**: Git repository backup
+- **Configuration**: Infrastructure as Code templates
+- **Logs**: Azure Monitor long-term retention
+- **Secrets**: Key Vault geo-replication
+
+#### High Availability
+- **Multi-Zone Deployment**: Availability zones for redundancy
+- **Health Checks**: Automated failure detection
+- **Failover**: Automatic traffic redirection
+- **Recovery Time Objective (RTO)**: < 5 minutes
+- **Recovery Point Objective (RPO)**: < 1 minute
+
+### Deployment Environments
+
+#### Development Environment
+- **Service**: Azure Container Instances
+- **Resources**: 0.5 CPU, 1 GB RAM
+- **Features**: Basic logging, development API keys
+- **Cost**: ~$20-30/month
+
+#### Staging Environment
+- **Service**: Azure Container Apps (single instance)
+- **Resources**: 1 CPU, 2 GB RAM
+- **Features**: Production-like configuration, test data
+- **Cost**: ~$50-70/month
+
+#### Production Environment
+- **Service**: Azure Container Apps (auto-scaling)
+- **Resources**: 1-4 CPU, 2-8 GB RAM (dynamic)
+- **Features**: Full monitoring, production API keys, high availability
+- **Cost**: ~$100-300/month (depending on usage)
+
+### Migration and Rollout Strategy
+
+#### Phase 1: Initial Deployment
+- Deploy to development environment
+- Validate functionality and performance
+- Configure monitoring and alerting
+
+#### Phase 2: Staging Validation
+- Deploy to staging environment
+- Conduct load testing and security validation
+- Verify integrations with external services
+
+#### Phase 3: Production Rollout
+- Blue-green deployment to production
+- Gradual traffic migration (10%, 50%, 100%)
+- Monitor performance and error rates
+
+#### Phase 4: Optimization
+- Analyze performance metrics
+- Optimize resource allocation
+- Implement cost optimization strategies
+
+This comprehensive Azure deployment strategy ensures scalability, security, and cost-effectiveness while maintaining high availability and performance for the MynaAPI service.

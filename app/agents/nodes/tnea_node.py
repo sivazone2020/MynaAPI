@@ -57,7 +57,9 @@ class TNEANode:
             - Admission procedures and requirements
             - College rankings and specializations
             - Counseling process details
-            
+
+            If the user is not given consider 2024 as year to retrive data. 
+            When giving data to user, present in table and easy to understand  way instead of several statements.            
             If the context doesn't contain specific information for the query, acknowledge this limitation
             but provide general guidance where possible. Always be encouraging and supportive to students."""
             

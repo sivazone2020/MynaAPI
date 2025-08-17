@@ -200,22 +200,27 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         
-    - name: Configure Container App with ACR admin credentials
+    - name: Update Container App with new image
       run: |
         # Get ACR admin credentials
         ACR_NAME="${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr"
         ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
         ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
         
-        # Update container app with new image using admin credentials
+        # Update container app image
         az containerapp update \
           --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app \
           --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
           --image ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.ref_name }}-${{ github.sha }} \
-          --registry-server ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io \
-          --registry-username $ACR_USERNAME \
-          --registry-password $ACR_PASSWORD \
           --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
+          
+        # Set registry configuration separately
+        az containerapp registry set \
+          --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app \
+          --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
+          --server ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io \
+          --username $ACR_USERNAME \
+          --password $ACR_PASSWORD
 
   smoke-tests:
     name: Smoke Tests

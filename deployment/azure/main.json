@@ -296,7 +296,7 @@
           "containers": [
             {
               "name": "mynaapi",
-              "image": "[concat(variables('containerRegistryName'), '.azurecr.io/', parameters('containerImageName'))]",
+              "image": "nginx:alpine",
               "env": [
                 {
                   "name": "OPENAI_API_KEY",

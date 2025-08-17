@@ -237,12 +237,19 @@ jobs:
           
         # Now update container app image with retry logic
         echo "Updating container app image..."
+        # Use shortened SHA to match the Docker tag format
+        SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+        IMAGE_TAG="${{ github.ref_name }}-${SHORT_SHA}"
+        FULL_IMAGE="${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io/${{ env.PROJECT_NAME }}:${IMAGE_TAG}"
+        
+        echo "Using image: $FULL_IMAGE"
+        
         for i in {1..3}; do
           echo "Attempt $i of 3..."
           if az containerapp update \
             --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app \
             --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
-            --image ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.ref_name }}-${{ github.sha }} \
+            --image "$FULL_IMAGE" \
             --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}; then
             echo "Container app update successful!"
             break

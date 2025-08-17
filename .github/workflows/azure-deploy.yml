@@ -82,10 +82,39 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    outputs:
+      container-app-url: ${{ steps.deploy.outputs.container-app-url }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Deploy ARM template
+      id: deploy
+      uses: azure/arm-deploy@v1
+      with:
+        subscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg
+        template: ./deployment/azure/main.json
+        parameters: ./deployment/azure/parameters.${{ github.event.inputs.environment || 'dev' }}.json
+        failOnStdErr: false
+
   build-container:
     name: Build Container Image
     runs-on: ubuntu-latest
-    needs: [build-and-test, security-scan]
+    needs: deploy-infrastructure
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     
     outputs:
@@ -130,81 +159,10 @@ jobs:
           BUILD_DATE=${{ github.event.head_commit.timestamp }}
           VERSION=${{ github.sha }}
 
-  deploy-infrastructure:
-    name: Deploy Infrastructure
-    runs-on: ubuntu-latest
-    needs: build-container
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    environment: ${{ github.event.inputs.environment || 'dev' }}
-    
-    outputs:
-      container-app-url: ${{ steps.deploy.outputs.container-app-url }}
-      
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-        
-    - name: Set environment variables
-      run: |
-        if [ "${{ github.event.inputs.environment }}" = "prod" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          echo "ENVIRONMENT=prod" >> $GITHUB_ENV
-          echo "RESOURCE_GROUP=${{ env.PROJECT_NAME }}-prod-rg" >> $GITHUB_ENV
-        else
-          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
-          echo "RESOURCE_GROUP=${{ env.PROJECT_NAME }}-dev-rg" >> $GITHUB_ENV
-        fi
-        
-    - name: Create Resource Group
-      run: |
-        az group create \
-          --name ${{ env.RESOURCE_GROUP }} \
-          --location ${{ env.AZURE_LOCATION }} \
-          --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
-          
-    - name: Deploy ARM Template
-      id: deploy
-      run: |
-        deployment_name="${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-$(date +%Y%m%d-%H%M%S)"
-        
-        # Update parameters file with secrets
-        jq '.parameters.openaiApiKey.value = "${{ secrets.OPENAI_API_KEY }}"' \
-           deployment/azure/parameters-${{ env.ENVIRONMENT }}.json > temp_params.json
-        jq '.parameters.pineconeApiKey.value = "${{ secrets.PINECONE_API_KEY }}"' \
-           temp_params.json > temp_params2.json
-        jq '.parameters.pineconeHost.value = "${{ secrets.PINECONE_HOST }}"' \
-           temp_params2.json > temp_params3.json
-        jq '.parameters.jwtSecretKey.value = "${{ secrets.JWT_SECRET_KEY }}"' \
-           temp_params3.json > final_params.json
-        
-        # Deploy infrastructure
-        az deployment group create \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --template-file deployment/azure/main.json \
-          --parameters @final_params.json \
-          --name $deployment_name \
-          --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
-          
-        # Get outputs
-        container_app_url=$(az deployment group show \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --name $deployment_name \
-          --query "properties.outputs.containerAppUrl.value" \
-          --output tsv)
-          
-        echo "container-app-url=$container_app_url" >> $GITHUB_OUTPUT
-        
-        # Clean up temporary files
-        rm -f temp_params*.json final_params.json
-
   deploy-application:
     name: Deploy Application
     runs-on: ubuntu-latest
-    needs: [build-container, deploy-infrastructure]
+    needs: [build-container]
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     environment: ${{ github.event.inputs.environment || 'dev' }}
     
@@ -214,27 +172,13 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         
-    - name: Set environment variables
-      run: |
-        if [ "${{ github.event.inputs.environment }}" = "prod" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          echo "ENVIRONMENT=prod" >> $GITHUB_ENV
-          echo "RESOURCE_GROUP=${{ env.PROJECT_NAME }}-prod-rg" >> $GITHUB_ENV
-        else
-          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
-          echo "RESOURCE_GROUP=${{ env.PROJECT_NAME }}-dev-rg" >> $GITHUB_ENV
-        fi
-        
     - name: Update Container App
       run: |
-        container_app_name="${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-app"
-        registry_name="${{ env.PROJECT_NAME }}${{ env.ENVIRONMENT }}acr"
-        image_name="${{ env.PROJECT_NAME }}:${{ github.sha }}"
-        full_image_name="${registry_name}.azurecr.io/${image_name}"
-        
+        # Update container app with new image
         az containerapp update \
-          --name $container_app_name \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --image $full_image_name \
+          --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app \
+          --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
+          --image ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.ref_name }}-${{ github.sha }} \
           --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
 
   smoke-tests:

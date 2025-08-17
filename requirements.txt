@@ -8,9 +8,9 @@ python-dotenv==1.0.0
 openai==1.99.9
 pinecone==7.3.0
 langgraph==0.6.5
-langchain==0.3.0
-langchain-openai==0.2.0
-langchain-community==0.3.0
-langchain-core==0.3.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+langchain-core>=0.3.72
 requests==2.31.0
 aiofiles==23.2.1

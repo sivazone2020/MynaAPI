@@ -126,7 +126,7 @@ jobs:
           --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
           --environment ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-env \
           --image nginx:alpine \
-          --target-port 80 \
+          --target-port 8000 \
           --ingress external \
           --cpu 1 \
           --memory 2Gi \

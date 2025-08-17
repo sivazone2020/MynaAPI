@@ -200,33 +200,21 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         
-    - name: Configure ACR permissions for Container App
+    - name: Configure Container App with ACR admin credentials
       run: |
-        # Get the managed identity principal ID
-        IDENTITY_PRINCIPAL_ID=$(az identity show \
-          --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-identity \
-          --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
-          --query principalId -o tsv)
+        # Get ACR admin credentials
+        ACR_NAME="${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr"
+        ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
+        ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
         
-        # Get ACR resource ID
-        ACR_ID=$(az acr show \
-          --name ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr \
-          --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
-          --query id -o tsv)
-        
-        # Assign AcrPull role to the managed identity
-        az role assignment create \
-          --assignee $IDENTITY_PRINCIPAL_ID \
-          --role "AcrPull" \
-          --scope $ACR_ID
-        
-    - name: Update Container App
-      run: |
-        # Update container app with new image
+        # Update container app with new image using admin credentials
         az containerapp update \
           --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app \
           --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
           --image ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.ref_name }}-${{ github.sha }} \
+          --registry-server ${{ env.PROJECT_NAME }}${{ github.event.inputs.environment || 'dev' }}acr.azurecr.io \
+          --registry-username $ACR_USERNAME \
+          --registry-password $ACR_PASSWORD \
           --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
 
   smoke-tests:

@@ -115,7 +115,7 @@ jobs:
         subscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg
         template: ./deployment/azure/main.json
-        parameters: ./deployment/azure/parameters.${{ github.event.inputs.environment || 'dev' }}.json
+        parameters: ./deployment/azure/parameters-${{ github.event.inputs.environment || 'dev' }}.json
         failOnStdErr: false
 
   build-container:

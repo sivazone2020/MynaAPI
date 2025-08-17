@@ -1,5 +1,5 @@
 # Multi-stage build for MynaAPI
-FROM python:3.13-slim as builder
+FROM python:3.13-slim
 
 # Set build arguments
 ARG BUILD_DATE
@@ -23,45 +23,21 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --user --no-cache-dir -r requirements.txt
-
-# Production stage
-FROM python:3.13-slim
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH=/root/.local/bin:$PATH
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd -r appuser && useradd -r -g appuser appuser
-
-# Set the working directory
-WORKDIR /app
-
-# Copy Python packages from builder stage
-COPY --from=builder /root/.local /root/.local
+# Install Python dependencies globally
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
 COPY run.py .
 
-# Create logs directory and set permissions
-RUN mkdir -p logs && \
-    chown -R appuser:appuser /app
+# Create logs directory
+RUN mkdir -p logs
 
 # Add labels for metadata
 LABEL maintainer="MynaAPI Team" \
       version="${VERSION}" \
       build-date="${BUILD_DATE}" \
       description="MynaAPI - College Recommendation Backend Service"
-
-# Switch to non-root user
-USER appuser
 
 # Expose the application port
 EXPOSE 8000

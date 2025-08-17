@@ -117,6 +117,21 @@ jobs:
         template: ./deployment/azure/main.json
         parameters: ./deployment/azure/parameters-${{ github.event.inputs.environment || 'dev' }}.json
         failOnStdErr: false
+        
+    - name: Create Container App
+      run: |
+        # Create a simple Container App with nginx
+        az containerapp create \
+          --name ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-app \
+          --resource-group ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg \
+          --environment ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-env \
+          --image nginx:alpine \
+          --target-port 80 \
+          --ingress external \
+          --cpu 1 \
+          --memory 2Gi \
+          --min-replicas 1 \
+          --max-replicas 3
 
   build-container:
     name: Build Container Image

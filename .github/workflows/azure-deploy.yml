@@ -17,6 +17,12 @@ on:
         - staging
         - prod
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  id-token: write
+
 env:
   AZURE_SUBSCRIPTION_ID: e584d9a6-2115-4a9b-a5d4-3d1948b95377
   PROJECT_NAME: mynaapi
@@ -72,7 +78,7 @@ jobs:
         output: 'trivy-results.sarif'
         
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
 

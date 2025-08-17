@@ -91,6 +91,77 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 The API will be available at `http://localhost:8000`
 
+### 4. Local Development with Docker
+
+```bash
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your actual API keys
+
+# Run with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f mynaapi
+
+# Stop services
+docker-compose down
+```
+
+## 🚀 Deployment
+
+### Azure Container Apps (Recommended)
+
+The application is designed for deployment on Azure Container Apps with full CI/CD integration.
+
+#### Quick Deployment
+
+1. **Fork this repository** to your GitHub account
+
+2. **Set up GitHub Secrets** in your repository:
+   ```
+   AZURE_CREDENTIALS           # Azure service principal JSON
+   AZURE_ACR_USERNAME          # Container registry username  
+   AZURE_ACR_PASSWORD          # Container registry password
+   OPENAI_API_KEY              # Your OpenAI API key
+   PINECONE_API_KEY            # Your Pinecone API key
+   PINECONE_HOST               # Your Pinecone host URL
+   JWT_SECRET_KEY              # Your JWT secret key
+   ```
+
+3. **Trigger deployment**:
+   - Push to `main` branch for automatic production deployment
+   - Use GitHub Actions "Run workflow" for manual deployment
+
+4. **Access your deployed API** at the provided Azure Container Apps URL
+
+#### Manual Deployment
+
+For detailed deployment instructions, see [`deployment/README.md`](deployment/README.md).
+
+```bash
+# PowerShell (Windows)
+.\deployment\scripts\deploy.ps1 -Environment dev -Action full
+
+# Bash (Linux/macOS)  
+./deployment/scripts/deploy.sh dev eastus full
+```
+
+#### Deployment Features
+
+- **Auto-scaling**: Scales 1-10 instances based on load
+- **Security**: Secrets managed in Azure Key Vault
+- **Monitoring**: Application Insights + Log Analytics
+- **Health Checks**: Automated health monitoring
+- **CI/CD**: GitHub Actions with automated testing
+- **Multi-Environment**: Dev, Staging, Production support
+
+### Other Deployment Options
+
+- **Docker**: Use the provided `Dockerfile` for any container platform
+- **Azure Container Instances**: For simple single-container deployment
+- **Kubernetes**: Deploy to any Kubernetes cluster with provided manifests
+
 ## API Endpoints
 
 ### Authentication

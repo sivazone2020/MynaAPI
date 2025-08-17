@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "subscriptionId": {
+      "value": "e584d9a6-2115-4a9b-a5d4-3d1948b95377"
+    },
+    "projectName": {
+      "value": "mynaapi"
+    },
+    "environment": {
+      "value": "prod"
+    },
+    "location": {
+      "value": "East US"
+    },
+    "containerImageName": {
+      "value": "mynaapi:latest"
+    },
+    "openaiApiKey": {
+      "value": "WILL_BE_REPLACED_BY_GITHUB_ACTIONS"
+    },
+    "pineconeApiKey": {
+      "value": "WILL_BE_REPLACED_BY_GITHUB_ACTIONS"
+    },
+    "pineconeHost": {
+      "value": "https://mynaservice-uf7j9ag.svc.aped-4627-b74a.pinecone.io"
+    },
+    "pineconeIndex": {
+      "value": "mynaservice"
+    },
+    "jwtSecretKey": {
+      "value": "WILL_BE_REPLACED_BY_GITHUB_ACTIONS"
+    }
+  }
+}

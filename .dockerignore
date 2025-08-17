@@ -1,0 +1,87 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache
+.mypy_cache
+.tox
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Documentation
+*.md
+docs/
+
+# Test files and debug scripts
+tests/
+debug_*.py
+test_*.py
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+
+# Azure specific
+.azure/
+azure-pipelines.yml
+
+# Deployment files (not needed in container)
+Dockerfile*
+docker-compose*
+.dockerignore
+deployment/
+scripts/

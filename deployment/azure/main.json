@@ -1,0 +1,411 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "MynaAPI - Azure Container Apps deployment template"
+  },
+  "parameters": {
+    "subscriptionId": {
+      "type": "string",
+      "defaultValue": "e584d9a6-2115-4a9b-a5d4-3d1948b95377",
+      "metadata": {
+        "description": "Azure Subscription ID"
+      }
+    },
+    "projectName": {
+      "type": "string",
+      "defaultValue": "mynaapi",
+      "minLength": 3,
+      "maxLength": 15,
+      "metadata": {
+        "description": "Project name used for resource naming"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment type"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for resources"
+      }
+    },
+    "containerImageName": {
+      "type": "string",
+      "defaultValue": "mynaapi:latest",
+      "metadata": {
+        "description": "Container image name and tag"
+      }
+    },
+    "openaiApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "OpenAI API Key"
+      }
+    },
+    "pineconeApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Pinecone API Key"
+      }
+    },
+    "pineconeHost": {
+      "type": "string",
+      "metadata": {
+        "description": "Pinecone Host URL"
+      }
+    },
+    "pineconeIndex": {
+      "type": "string",
+      "defaultValue": "mynaservice",
+      "metadata": {
+        "description": "Pinecone Index Name"
+      }
+    },
+    "jwtSecretKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "JWT Secret Key"
+      }
+    }
+  },
+  "variables": {
+    "resourcePrefix": "[concat(parameters('projectName'), '-', parameters('environment'))]",
+    "containerRegistryName": "[concat(replace(variables('resourcePrefix'), '-', ''), 'acr')]",
+    "keyVaultName": "[concat(variables('resourcePrefix'), '-kv')]",
+    "logAnalyticsName": "[concat(variables('resourcePrefix'), '-logs')]",
+    "appInsightsName": "[concat(variables('resourcePrefix'), '-ai')]",
+    "containerAppsEnvironmentName": "[concat(variables('resourcePrefix'), '-env')]",
+    "containerAppName": "[concat(variables('resourcePrefix'), '-app')]",
+    "managedIdentityName": "[concat(variables('resourcePrefix'), '-identity')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('managedIdentityName')]",
+      "location": "[parameters('location')]",
+      "metadata": {
+        "description": "User-assigned managed identity for secure access to Azure services"
+      }
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-01-01-preview",
+      "name": "[variables('containerRegistryName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": true,
+        "publicNetworkAccess": "Enabled"
+      },
+      "metadata": {
+        "description": "Azure Container Registry for storing application images"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('logAnalyticsName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "retentionInDays": 30,
+        "sku": {
+          "name": "PerGB2018"
+        }
+      },
+      "metadata": {
+        "description": "Log Analytics workspace for monitoring and logging"
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('appInsightsName')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      ],
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      },
+      "metadata": {
+        "description": "Application Insights for application performance monitoring"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+      ],
+      "properties": {
+        "tenantId": "[subscription().tenantId]",
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "accessPolicies": [
+          {
+            "tenantId": "[subscription().tenantId]",
+            "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))).principalId]",
+            "permissions": {
+              "secrets": [
+                "get",
+                "list"
+              ]
+            }
+          }
+        ],
+        "enabledForDeployment": false,
+        "enabledForTemplateDeployment": true,
+        "enabledForDiskEncryption": false,
+        "enableRbacAuthorization": false
+      },
+      "metadata": {
+        "description": "Key Vault for secure storage of application secrets"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[concat(variables('keyVaultName'), '/openai-api-key')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ],
+      "properties": {
+        "value": "[parameters('openaiApiKey')]"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[concat(variables('keyVaultName'), '/pinecone-api-key')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ],
+      "properties": {
+        "value": "[parameters('pineconeApiKey')]"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[concat(variables('keyVaultName'), '/jwt-secret-key')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ],
+      "properties": {
+        "value": "[parameters('jwtSecretKey')]"
+      }
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('containerAppsEnvironmentName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      ],
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))).customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '2023-09-01').primarySharedKey]"
+          }
+        }
+      },
+      "metadata": {
+        "description": "Container Apps Environment for hosting the application"
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('containerAppName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('containerAppsEnvironmentName'))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), 'openai-api-key')]",
+        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), 'pinecone-api-key')]",
+        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), 'jwt-secret-key')]"
+      ],
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]": {}
+        }
+      },
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerAppsEnvironmentName'))]",
+        "configuration": {
+          "ingress": {
+            "external": true,
+            "targetPort": 8000,
+            "allowInsecure": false,
+            "traffic": [
+              {
+                "weight": 100,
+                "latestRevision": true
+              }
+            ]
+          },
+          "registries": [
+            {
+              "server": "[concat(variables('containerRegistryName'), '.azurecr.io')]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "openai-api-key",
+              "keyVaultUrl": "[concat('https://', variables('keyVaultName'), '.vault.azure.net/secrets/openai-api-key')]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+            },
+            {
+              "name": "pinecone-api-key",
+              "keyVaultUrl": "[concat('https://', variables('keyVaultName'), '.vault.azure.net/secrets/pinecone-api-key')]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+            },
+            {
+              "name": "jwt-secret-key",
+              "keyVaultUrl": "[concat('https://', variables('keyVaultName'), '.vault.azure.net/secrets/jwt-secret-key')]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "mynaapi",
+              "image": "[concat(variables('containerRegistryName'), '.azurecr.io/', parameters('containerImageName'))]",
+              "env": [
+                {
+                  "name": "OPENAI_API_KEY",
+                  "secretRef": "openai-api-key"
+                },
+                {
+                  "name": "PINECONE_API_KEY",
+                  "secretRef": "pinecone-api-key"
+                },
+                {
+                  "name": "PINECONE_HOST",
+                  "value": "[parameters('pineconeHost')]"
+                },
+                {
+                  "name": "PINECONE_INDEX",
+                  "value": "[parameters('pineconeIndex')]"
+                },
+                {
+                  "name": "JWT_SECRET_KEY",
+                  "secretRef": "jwt-secret-key"
+                },
+                {
+                  "name": "JWT_ALGORITHM",
+                  "value": "HS256"
+                },
+                {
+                  "name": "JWT_EXPIRATION_HOURS",
+                  "value": "24"
+                },
+                {
+                  "name": "LOG_LEVEL",
+                  "value": "INFO"
+                },
+                {
+                  "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                  "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).ConnectionString]"
+                }
+              ],
+              "resources": {
+                "cpu": "[if(equals(parameters('environment'), 'prod'), 2, 1)]",
+                "memory": "[if(equals(parameters('environment'), 'prod'), '4Gi', '2Gi')]"
+              },
+              "probes": [
+                {
+                  "type": "Liveness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8000
+                  },
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 30,
+                  "timeoutSeconds": 10,
+                  "failureThreshold": 3
+                },
+                {
+                  "type": "Readiness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8000
+                  },
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5,
+                  "failureThreshold": 3
+                }
+              ]
+            }
+          ],
+          "scale": {
+            "minReplicas": "[if(equals(parameters('environment'), 'prod'), 2, 1)]",
+            "maxReplicas": "[if(equals(parameters('environment'), 'prod'), 10, 3)]",
+            "rules": [
+              {
+                "name": "http-scaling",
+                "http": {
+                  "metadata": {
+                    "concurrentRequests": "10"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "description": "MynaAPI Container App with auto-scaling and health checks"
+      }
+    }
+  ],
+  "outputs": {
+    "containerAppUrl": {
+      "type": "string",
+      "value": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', variables('containerAppName'))).configuration.ingress.fqdn)]"
+    },
+    "containerRegistryLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))).loginServer]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[variables('keyVaultName')]"
+    },
+    "managedIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))).principalId]"
+    },
+    "applicationInsightsConnectionString": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).ConnectionString]"
+    }
+  }
+}

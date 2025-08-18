@@ -114,13 +114,35 @@ class PineconeService:
             
             for i, result in enumerate(results):
                 metadata = result.get("metadata", {})
-                text_content = metadata.get("text", "")
                 college_name = metadata.get("college_name", "")
-                cutoff_info = metadata.get("cutoff_info", "")
+                branch_name = metadata.get("branch_name", "")
+                branch_code = metadata.get("branch_code", "")
+                college_code = metadata.get("college_code", "")
+                year = metadata.get("year", "")
+                
+                # Extract all cutoff information with descriptive names
+                cutoff_data = []
+                cutoff_fields = {
+                    "cutoff_OC": "Open Competition",
+                    "cutoff_BC": "Backward Classes", 
+                    "cutoff_BCM": "BC Muslim",
+                    "cutoff_MBC": "Most Backward Classes",
+                    "cutoff_SC": "Scheduled Castes",
+                    "cutoff_SCA": "SC Arunthathiyar",
+                    "cutoff_ST": "Scheduled Tribes"
+                }
+                
+                for field, description in cutoff_fields.items():
+                    value = metadata.get(field)
+                    if value is not None:
+                        cutoff_data.append(f"{description}: {value}")
+                
+                cutoff_info = " | ".join(cutoff_data) if cutoff_data else "Cutoff data not available"
                 score = result.get("score", 0)
                 
-                # Format the context piece
-                context_piece = f"Document {i+1} (relevance: {score:.3f}):\nCollege: {college_name}\n{text_content}\nCutoff Info: {cutoff_info}\n\n"
+                # Format the context piece with detailed information (removed text_content as it doesn't exist)
+                branch_display = f"{branch_name} ({branch_code})" if branch_code else branch_name
+                context_piece = f"Document {i+1} (relevance: {score:.3f}):\nCollege: {college_name}\nBranch: {branch_display}\nYear: {year}\nCutoffs: {cutoff_info}\n\n"
                 
                 if current_length + len(context_piece) > max_context_length:
                     break

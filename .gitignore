@@ -138,14 +138,31 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
- debug_pinecone.py
- debug_pinecone_fixed.py
+# Test files and debug scripts
+debug_pinecone.py
+debug_pinecone_fixed.py
 debug_pinecone_v6.py
- debug_workflow.py
- test_e2e_real_apis.py
- test_gojan_cutoff.py
- test_gpt_integration.py
+debug_workflow.py
+test_e2e_real_apis.py
+test_gojan_cutoff.py
+test_gpt_integration.py
 test_intent_analysis.py
- test_real_pinecone.py
- tests/test_gpt_integration.py
-  tests/test_services.py
+test_real_pinecone.py
+tests/test_gpt_integration.py
+tests/test_services.py
+
+# Additional test files
+test_pinecone_raw.py
+test_final_integration.py
+test_api_only.py
+test_api_fixes.py
+test_api_comprehensive.py
+test_api_azure.py
+detailed_pinecone_test.py
+validate_metadata.py
+discover_api_endpoints.py
+test_requirements.txt
+
+# Test files pattern
+test_*.py
+*_test.py

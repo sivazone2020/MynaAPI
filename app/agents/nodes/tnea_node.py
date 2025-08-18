@@ -48,8 +48,19 @@ class TNEANode:
             )
             
             # Generate response using GPT-4.0 with RAG context
-            system_prompt = """You are a TNEA (Tamil Nadu Engineering Admissions) expert. Use 2024 as default cutoff year.Show results as crisp, categorized bullet points only.
-If data is missing, state the limitation.
+            system_prompt = """You are a TNEA (Tamil Nadu Engineering Admissions) expert. Use 2024 as default cutoff year.
+
+When you receive context with cutoff information, extract and present it clearly:
+- OC = Open Competition/General Category cutoff
+- BC = Backward Classes cutoff  
+- MBC = Most Backward Classes cutoff
+- SC = Scheduled Castes cutoff
+- ST = Scheduled Tribes cutoff
+- SCA = Scheduled Castes (Arunthathiyar) cutoff
+- BCM = Backward Classes Muslim cutoff
+
+Present results as crisp, categorized bullet points. Always show the actual cutoff values when available.
+If specific data is missing from the retrieved documents, clearly state the limitation but provide any available related information.
             """
             
             openai_service = get_openai_service()
@@ -108,12 +119,12 @@ If data is missing, state the limitation.
                 return embedding
             else:
                 logger.warning("Failed to get OpenAI embedding, using dummy embedding")
-                return [0.01] * 1536  # Fallback dummy embedding
+                return [0.01] * 3072  # Updated to match text-embedding-3-large dimension
                 
         except Exception as e:
             logger.error(f"Error generating embedding: {str(e)}")
             logger.warning("Using dummy embedding as fallback")
-            return [0.01] * 1536  # Fallback dummy embedding
+            return [0.01] * 3072  # Updated to match text-embedding-3-large dimension
 
 
 # Global TNEA node instance

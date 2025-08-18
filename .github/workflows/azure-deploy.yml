@@ -108,6 +108,7 @@ jobs:
       id: deploy
       uses: azure/arm-deploy@v1
       with:
+        scope: resourcegroup
         subscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ env.PROJECT_NAME }}-${{ github.event.inputs.environment || 'dev' }}-rg
         template: ./deployment/azure/main.json
@@ -187,7 +188,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
-          BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          BUILD_DATE=${{ github.event.repository.updated_at || github.run_id }}
           VERSION=${{ github.sha }}
 
   deploy-application:

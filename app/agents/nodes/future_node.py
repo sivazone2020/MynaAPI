@@ -75,14 +75,6 @@ class FutureNode:
 Currently, I specialize in helping students with Tamil Nadu Engineering Admissions (TNEA) - 
 including cutoff marks, college recommendations, and admission guidance.
 
-For your specific query about other topics, I'm continuously being enhanced to provide 
-more comprehensive educational guidance. 
-
-Here's what I can help you with right now:
-✅ TNEA cutoff marks and college selection
-✅ Engineering college recommendations in Tamil Nadu  
-✅ Admission process guidance
-✅ Previous year trends and analysis
 
 Is there anything related to Tamil Nadu engineering admissions I can help you with instead?"""
 

@@ -48,20 +48,9 @@ class TNEANode:
             )
             
             # Generate response using GPT-4.0 with RAG context
-            system_prompt = """You are an expert assistant for Tamil Nadu Engineering Admissions (TNEA). 
-            You help students understand cutoff marks, college options, and admission processes.
-            
-            Use the provided context to give accurate, helpful information about:
-            - Engineering colleges in Tamil Nadu
-            - TNEA cutoff marks and trends
-            - Admission procedures and requirements
-            - College rankings and specializations
-            - Counseling process details
-
-            If the user is not given consider 2024 as year to retrive data. 
-            When giving data to user, present in table and easy to understand  way instead of several statements.            
-            If the context doesn't contain specific information for the query, acknowledge this limitation
-            but provide general guidance where possible. Always be encouraging and supportive to students."""
+            system_prompt = """You are a TNEA (Tamil Nadu Engineering Admissions) expert. Use 2024 as default cutoff year.Show results as crisp, categorized bullet points only.
+If data is missing, state the limitation.
+            """
             
             openai_service = get_openai_service()
             response = await openai_service.generate_response(
@@ -96,17 +85,7 @@ class TNEANode:
             )
             
             # Fallback response
-            fallback_response = """I apologize, but I'm experiencing some technical difficulties 
-            accessing the latest TNEA information. However, I can provide some general guidance:
-            
-            For TNEA (Tamil Nadu Engineering Admissions), students typically need to:
-            1. Check their rank and cutoff marks
-            2. Research colleges and their previous year cutoffs
-            3. Participate in the counseling process
-            4. Choose colleges and courses based on their rank
-            
-            I recommend checking the official TNEA website for the most current information 
-            and cutoff details."""
+            fallback_response = """I apologize"""
             
             state.update({
                 "response": fallback_response,

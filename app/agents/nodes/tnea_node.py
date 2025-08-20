@@ -3,6 +3,7 @@ from app.services.openai_service import get_openai_service
 from app.services.pinecone_service import get_pinecone_service
 from app.services.logging_service import logging_service
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,37 @@ class TNEANode:
     
     def __init__(self):
         self.name = "TNEANode"
+        self._system_prompt = None
+    
+    def _load_system_prompt(self) -> str:
+        """
+        Load system prompt from prompt1.txt file.
+        
+        Returns:
+            str: The system prompt content
+        """
+        if self._system_prompt is None:
+            try:
+                # Get the directory where this file is located
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                prompt_file_path = os.path.join(current_dir, "prompts", "prompt1.txt")
+                
+                with open(prompt_file_path, 'r', encoding='utf-8') as file:
+                    self._system_prompt = file.read().strip()
+                
+                logger.info(f"Loaded system prompt from {prompt_file_path}")
+                
+            except FileNotFoundError:
+                logger.error(f"System prompt file not found at {prompt_file_path}")
+                # Fallback prompt
+                self._system_prompt = """."""
+                
+            except Exception as e:
+                logger.error(f"Error loading system prompt: {str(e)}")
+                # Fallback prompt
+                self._system_prompt = """."""
+        
+        return self._system_prompt
     
     async def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -48,26 +80,15 @@ class TNEANode:
             )
             
             # Generate response using GPT-4.0 with RAG context
-            system_prompt = """You are a TNEA (Tamil Nadu Engineering Admissions) expert. Use 2024 as default cutoff year.
-
-When you receive context with cutoff information, extract and present it clearly:
-- OC = Open Competition/General Category cutoff
-- BC = Backward Classes cutoff  
-- MBC = Most Backward Classes cutoff
-- SC = Scheduled Castes cutoff
-- ST = Scheduled Tribes cutoff
-- SCA = Scheduled Castes (Arunthathiyar) cutoff
-- BCM = Backward Classes Muslim cutoff
-
-Present results as crisp, categorized bullet points. Always show the actual cutoff values when available.
-If specific data is missing from the retrieved documents, clearly state the limitation but provide any available related information.
-            """
+            system_prompt = self._load_system_prompt()
             
             openai_service = get_openai_service()
-            response = await openai_service.generate_response(
+            
+            # Use Assistant API for efficient token usage (Option 3)
+            response = await openai_service.generate_response_with_assistant(
                 query=query,
                 context=context,
-                system_prompt=system_prompt
+                session_id=session_id
             )
             
             # Log GPT response
